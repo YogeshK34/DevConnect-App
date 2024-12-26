@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
