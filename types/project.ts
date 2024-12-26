@@ -1,13 +1,12 @@
-import { ObjectId } from 'mongodb'
-
 export interface Project {
-    _id: string | ObjectId
-    title: string
-    description: string
-    technologies: string[]
-    userId: string
-    imageUrl?: string
-    createdAt: Date
-    updatedAt: Date
+    id: string;
+    title: string;
+    description: string;
+    technologies: string[];
+    user_id: string;
+    image_url?: string;
+    created_at: string;
+    updated_at: string;
+    likes?: number;
 }
 

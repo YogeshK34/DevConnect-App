@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,41 +14,50 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@clerk/nextjs";
-import { Rocket, Search, Plus } from "lucide-react";
+import { Rocket, Search, Plus, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import type { Project } from "@/types/project";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const { isSignedIn, user } = useUser();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
-    if (!isSignedIn) {
-      router.push("/sign-in");
-    }
-  }, [isSignedIn, router]);
-
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const response = await fetch("/api/projects");
-        if (response.ok) {
-          const data = await response.json();
-          setProjects(data);
-        } else {
-          throw new Error("Failed to fetch projects");
-        }
-      } catch (error) {
-        console.error("Error fetching projects:", error);
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+      if (!user) {
+        router.push("/auth/sign-in");
+      } else {
+        fetchProjects();
       }
     };
 
-    if (isSignedIn) {
-      fetchProjects();
+    checkUser();
+  }, [router]);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      setProjects(data || []);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+    } finally {
+      setLoading(false);
     }
-  }, [isSignedIn]);
+  };
 
   const filteredProjects = projects.filter(
     (project) =>
@@ -58,13 +67,20 @@ export default function ProjectsPage() {
       )
   );
 
-  const isValidImageUrl = (url: string) => {
+  const isValidImageUrl = (url: string | null) => {
     if (!url) return false;
-    if (url.startsWith("http://") || url.startsWith("https://")) return true;
-    return false;
+    return url.startsWith("http://") || url.startsWith("https://");
   };
 
-  if (!isSignedIn) {
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
     return null;
   }
 
@@ -97,13 +113,13 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => (
             <Card
-              key={project._id.toString()}
+              key={project.id}
               className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300"
             >
-              {project.imageUrl && isValidImageUrl(project.imageUrl) && (
+              {project.image_url && isValidImageUrl(project.image_url) && (
                 <div className="relative w-full h-48">
                   <Image
-                    src={project.imageUrl}
+                    src={project.image_url}
                     alt={project.title}
                     fill
                     className="object-cover"
@@ -126,12 +142,12 @@ export default function ProjectsPage() {
                 <div className="flex justify-between items-center mt-auto">
                   <Button
                     variant="outline"
-                    onClick={() => router.push(`/projects/${project._id}`)}
+                    onClick={() => router.push(`/projects/${project.id}`)}
                   >
                     View Details
                   </Button>
                   <span className="text-sm text-gray-400 dark:text-gray-500">
-                    {new Date(project.createdAt).toLocaleDateString()}
+                    {new Date(project.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </CardContent>

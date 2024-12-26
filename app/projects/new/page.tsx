@@ -1,15 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useUser } from "@clerk/nextjs";
+// import { useUser } from '@clerk/nextjs'
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
 import type { Project } from "@/types/project";
 
 export default function NewProjectPage() {
@@ -22,7 +25,7 @@ export default function NewProjectPage() {
   const [imageError, setImageError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const { user } = useUser();
+  // const { user } = useUser()
 
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -31,80 +34,65 @@ export default function NewProjectPage() {
     if (!file) return;
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // Create a unique filename
+      const fileExt = file.name.split(".").pop();
+      const uniqueId = Math.random().toString(36).substring(2);
+      const fileName = `${uniqueId}-${Date.now()}.${fileExt}`;
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      // Upload directly to Supabase storage
+      const { error: uploadError, data } = await supabase.storage
+        .from("project-images")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.imageUrl) {
-          setUploadedImage(data.imageUrl);
-          setImageError(null);
-        } else {
-          throw new Error("No image URL returned from server");
-        }
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to upload image");
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw new Error("Failed to upload image");
+      }
+
+      if (data) {
+        // Get the public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("project-images").getPublicUrl(data.path);
+
+        setUploadedImage(publicUrl);
+        setImageError(null);
+        toast({
+          title: "Success",
+          description: "Image uploaded successfully!",
+        });
       }
     } catch (error) {
       console.error("Error uploading image:", error);
-      setImageError(
-        error instanceof Error
-          ? error.message
-          : "Failed to upload image. Please try again."
-      );
-    }
-  };
-
-  const validateImageUrl = useCallback((url: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = document.createElement("img");
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = url;
-    });
-  }, []);
-
-  const handleImageUrlChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const url = e.target.value;
-    setImageUrl(url);
-    if (url) {
-      try {
-        const isValid = await validateImageUrl(url);
-        if (isValid) {
-          setUploadedImage(url);
-          setImageError(null);
-        } else {
-          setUploadedImage(null);
-          setImageError("Invalid image URL. Please enter a valid image URL.");
-        }
-      } catch (error) {
-        console.error("Error validating image URL:", error);
-        setUploadedImage(null);
-        setImageError("Error validating image URL. Please try again.");
-      }
-    } else {
-      setUploadedImage(null);
-      setImageError(null);
+      setImageError("Failed to upload image. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      alert("You must be logged in to create a project");
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to create a project",
+        variant: "destructive",
+      });
       return;
     }
 
     if (!uploadedImage) {
-      setImageError("Please upload an image or provide a valid image URL");
+      setImageError("Please upload an image for your project");
       return;
     }
 
@@ -115,31 +103,34 @@ export default function NewProjectPage() {
         title,
         description,
         technologies: technologies.split(",").map((tech) => tech.trim()),
-        userId: user.id,
-        imageUrl: uploadedImage,
+        user_id: user.id, // Using Supabase user.id instead of Clerk's
+        image_url: uploadedImage,
       };
 
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(projectData),
+      const { data, error } = await supabase
+        .from("projects")
+        .insert([projectData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Project creation error:", error);
+        throw new Error("Failed to create project");
+      }
+
+      toast({
+        title: "Success",
+        description: "Project created successfully!",
       });
 
-      if (response.ok) {
-        router.push("/projects");
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create project");
-      }
+      router.push("/projects");
     } catch (error) {
       console.error("Error creating project:", error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Failed to create project. Please try again."
-      );
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -173,7 +164,7 @@ export default function NewProjectPage() {
             id="technologies"
             value={technologies}
             onChange={(e) => setTechnologies(e.target.value)}
-            placeholder="React, Node.js, MongoDB"
+            placeholder="React, Node.js, PostgreSQL"
             required
           />
         </div>
@@ -181,42 +172,28 @@ export default function NewProjectPage() {
         <Card>
           <CardContent className="p-6">
             <Label>Project Image</Label>
-            <Tabs defaultValue="upload" className="mt-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="upload">Upload Image</TabsTrigger>
-                <TabsTrigger value="url">Image URL</TabsTrigger>
-              </TabsList>
-              <TabsContent value="upload" className="space-y-4">
-                <div className="grid w-full max-w-sm items-center gap-1.5">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    onChange={handleImageUpload}
+            <div className="mt-4">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                required
+              />
+              {imageError && (
+                <p className="text-red-500 mt-2 text-sm">{imageError}</p>
+              )}
+              {uploadedImage && (
+                <div className="mt-4 relative w-full h-48">
+                  <Image
+                    src={uploadedImage}
+                    alt="Project preview"
+                    fill
+                    className="object-cover rounded-md"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 </div>
-              </TabsContent>
-              <TabsContent value="url" className="space-y-4">
-                <Input
-                  type="url"
-                  placeholder="Enter image URL"
-                  value={imageUrl}
-                  onChange={handleImageUrlChange}
-                />
-              </TabsContent>
-            </Tabs>
-            {imageError && <p className="text-red-500 mt-2">{imageError}</p>}
-            {uploadedImage && (
-              <div className="mt-4 relative w-full h-48">
-                <Image
-                  src={uploadedImage}
-                  alt="Project preview"
-                  fill
-                  className="object-cover rounded-md"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                />
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
 
