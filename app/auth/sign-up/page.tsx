@@ -29,11 +29,15 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
+      // Get the site URL from environment variable or window.location
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${siteUrl}/auth/callback?next=/projects`,
         },
       });
 
@@ -45,7 +49,6 @@ export default function SignUpPage() {
           "We've sent you a verification link to complete your registration.",
       });
 
-      // Optionally redirect to a confirmation page
       router.push("/auth/verify-email");
     } catch (error) {
       toast({

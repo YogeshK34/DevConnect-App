@@ -5,13 +5,14 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
+    const next = requestUrl.searchParams.get('next') || '/projects'
 
     if (code) {
         const supabase = createRouteHandlerClient({ cookies })
         await supabase.auth.exchangeCodeForSession(code)
     }
 
-    // URL to redirect to after sign in process completes
-    return NextResponse.redirect(new URL('/projects', requestUrl.origin))
+    // Redirect to the specified next URL or default to /projects
+    return NextResponse.redirect(new URL(next, requestUrl.origin))
 }
 
