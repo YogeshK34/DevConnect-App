@@ -168,6 +168,11 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
+      // After successful update
+      if (!error) {
+        router.push(`/users/${profile.id}`);
+      }
+
       toast({
         title: "Success",
         description: "Profile updated successfully",

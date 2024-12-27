@@ -1,5 +1,6 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable prefer-const */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -19,7 +20,6 @@ import {
   Upload,
   Calendar,
   User,
-  Rocket,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase-utils";
@@ -51,15 +51,47 @@ export default function UserProfilePage() {
 
   const fetchProfileAndProjects = async () => {
     try {
-      const { data: profile, error: profileError } = await supabase
+      // First check if the user exists in auth
+      const { data: authUser } = await supabase.auth.getUser();
+
+      // Fetch profile
+      let { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .single();
 
-      if (profileError) throw profileError;
+      // If profile doesn't exist and it's the current user, create one
+      if (profileError?.code === "PGRST116" && authUser.user?.id === userId) {
+        const newProfile = {
+          id: userId,
+          username: authUser.user.email?.split("@")[0] || null,
+          full_name: null,
+          bio: null,
+          avatar_url: null,
+          background_url: null,
+          website: null,
+          location: null,
+          github_url: null,
+          twitter_url: null,
+          created_at: new Date().toISOString(),
+        };
+
+        const { data: createdProfile, error: createError } = await supabase
+          .from("profiles")
+          .insert([newProfile])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        profile = createdProfile;
+      } else if (profileError) {
+        throw profileError;
+      }
+
       setProfile(profile);
 
+      // Fetch projects
       const { data: projects, error: projectsError } = await supabase
         .from("projects")
         .select("*")
@@ -366,7 +398,7 @@ export default function UserProfilePage() {
               {projects.length === 0 && (
                 <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
                   <div className="rounded-full bg-muted p-4 mb-4">
-                    <Rocket className="h-8 w-8 text-muted-foreground" />
+                    {/* <Rocket className="h-8 w-8 text-muted-foreground" /> */}
                   </div>
                   <p className="text-lg font-medium">No projects yet</p>
                   <p className="text-sm text-muted-foreground mt-1">
