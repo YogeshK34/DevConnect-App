@@ -1,6 +1,6 @@
-/* eslint-disable prefer-const */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable prefer-const */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -20,6 +20,7 @@ import {
   Upload,
   Calendar,
   User,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase-utils";
@@ -272,65 +273,71 @@ export default function UserProfilePage() {
                   <Button
                     variant="outline"
                     onClick={() => router.push("/profile")}
-                    className="w-full sm:w-auto"
+                    className="flex items-center gap-2"
                   >
-                    <Edit className="h-4 w-4 mr-2" />
+                    <Edit className="h-4 w-4" />
                     Edit Profile
+                  </Button>
+                )}
+                {!isOwnProfile && (
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/chat/${userId}`)}
+                    className="flex items-center gap-2 ml-2"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Start Chat
                   </Button>
                 )}
               </div>
 
               {/* Bio and Links */}
-              <div className="space-y-4">
+              <div className="flex items-center gap-6 text-sm text-muted-foreground">
                 {profile.bio && (
-                  <p className="text-muted-foreground max-w-2xl">
-                    {profile.bio}
-                  </p>
+                  <p className="text-muted-foreground">{profile.bio}</p>
                 )}
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  {profile.location && (
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {profile.location}
-                    </div>
-                  )}
-                  {profile.website && (
-                    <a
-                      href={profile.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-primary transition-colors"
-                    >
-                      <Globe className="h-4 w-4 mr-1" />
-                      Website
-                    </a>
-                  )}
-                  {profile.github_url && (
-                    <a
-                      href={profile.github_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-primary transition-colors"
-                    >
-                      <Github className="h-4 w-4 mr-1" />
-                      GitHub
-                    </a>
-                  )}
-                  {profile.twitter_url && (
-                    <a
-                      href={profile.twitter_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center hover:text-primary transition-colors"
-                    >
-                      <Twitter className="h-4 w-4 mr-1" />
-                      Twitter
-                    </a>
-                  )}
+                {profile.location && (
                   <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Joined {new Date(profile.created_at).toLocaleDateString()}
+                    <MapPin className="h-4 w-4 mr-1" />
+                    {profile.location}
                   </div>
+                )}
+                {profile.website && (
+                  <a
+                    href={profile.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center hover:text-primary transition-colors"
+                  >
+                    <Globe className="h-4 w-4 mr-1" />
+                    Website
+                  </a>
+                )}
+                {profile.github_url && (
+                  <a
+                    href={profile.github_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center hover:text-primary transition-colors"
+                  >
+                    <Github className="h-4 w-4 mr-1" />
+                    GitHub
+                  </a>
+                )}
+                {profile.twitter_url && (
+                  <a
+                    href={profile.twitter_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center hover:text-primary transition-colors"
+                  >
+                    <Twitter className="h-4 w-4 mr-1" />
+                    Twitter
+                  </a>
+                )}
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-1" />
+                  Joined {new Date(profile.created_at).toLocaleDateString()}
                 </div>
               </div>
             </div>
