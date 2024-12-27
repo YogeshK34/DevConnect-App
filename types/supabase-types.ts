@@ -9,6 +9,38 @@ export type Json =
 export interface Database {
     public: {
         Tables: {
+            profiles: {
+                Row: {
+                    id: string
+                    username: string | null
+                    full_name: string | null
+                    bio: string | null
+                    avatar_url: string | null
+                    background_url: string | null
+                    website: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id: string
+                    username?: string | null
+                    full_name?: string | null
+                    bio?: string | null
+                    avatar_url?: string | null
+                    background_url?: string | null
+                    website?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    username?: string | null
+                    full_name?: string | null
+                    bio?: string | null
+                    avatar_url?: string | null
+                    background_url?: string | null
+                    website?: string | null
+                    created_at?: string
+                }
+            }
             projects: {
                 Row: {
                     id: string
@@ -41,7 +73,6 @@ export interface Database {
                     likes?: number
                 }
             }
-            // Add other tables here as needed
         }
         Views: {
             [_ in never]: never
@@ -54,5 +85,4 @@ export interface Database {
         }
     }
 }
-
 
