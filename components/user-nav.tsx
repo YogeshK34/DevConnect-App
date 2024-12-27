@@ -13,13 +13,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/utils/supabase-utils";
 import type { User } from "@supabase/supabase-js";
 
 export function UserNav() {
   const [user, setUser] = useState<User | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -28,10 +26,6 @@ export function UserNav() {
         data: { user },
       } = await supabase.auth.getUser();
       setUser(user);
-      if (user) {
-        fetchUnreadCount(user.id);
-        subscribeToMessages(user.id);
-      }
     };
     fetchUser();
 
@@ -46,59 +40,6 @@ export function UserNav() {
       subscription.unsubscribe();
     };
   }, []);
-
-  const fetchUnreadCount = async (userId: string) => {
-    try {
-      const { count, error } = await supabase
-        .from("chat_messages")
-        .select("*", { count: "exact", head: true })
-        .eq("receiver_id", userId)
-        .eq("read", false);
-
-      if (error) throw error;
-      setUnreadCount(count || 0);
-    } catch (error) {
-      console.error("Error fetching unread count:", error);
-    }
-  };
-
-  const subscribeToMessages = (userId: string) => {
-    const subscription = supabase
-      .channel("chat_notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "chat_messages",
-          filter: `receiver_id=eq.${userId}`,
-        },
-        (payload) => {
-          if (!payload.new.read) {
-            setUnreadCount((prev) => prev + 1);
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "chat_messages",
-          filter: `receiver_id=eq.${userId}`,
-        },
-        (payload) => {
-          if (payload.new.read && !payload.old.read) {
-            setUnreadCount((prev) => Math.max(0, prev - 1));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -126,14 +67,6 @@ export function UserNav() {
               {user.email?.[0].toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
-          {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-            >
-              {unreadCount}
-            </Badge>
-          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
