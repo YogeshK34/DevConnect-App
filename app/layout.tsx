@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/ui/toaster";
 import { UserNav } from "@/components/user-nav";
+import { Users } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,6 +38,13 @@ export default function RootLayout({
                 <nav className="flex items-center space-x-4">
                   <Link href="/projects" className="text-sm font-medium">
                     Projects
+                  </Link>
+                  <Link
+                    href="/users"
+                    className="text-sm font-medium flex items-center"
+                  >
+                    <Users className="h-4 w-4 mr-1" />
+                    Users
                   </Link>
                   <UserNav />
                   <ThemeToggle />
