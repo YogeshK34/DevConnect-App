@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/ui/toaster";
 import { UserNav } from "@/components/user-nav";
+import { Logo } from "@/components/logo";
 import { MessageCircle, Users, Menu } from "lucide-react";
 import { NotificationIndicator } from "@/components/notification-indicator";
 import { Button } from "@/components/ui/button";
@@ -35,8 +36,8 @@ export default function RootLayout({
           <div className="min-h-screen flex flex-col">
             <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-                <Link href="/" className="text-2xl font-bold">
-                  DevConnect
+                <Link href="/" className="hover:opacity-90 transition-opacity">
+                  <Logo />
                 </Link>
                 <nav className="hidden md:flex items-center space-x-4">
                   <Link href="/projects" className="text-sm font-medium">
@@ -67,6 +68,9 @@ export default function RootLayout({
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                    <div className="mb-8">
+                      <Logo size="lg" />
+                    </div>
                     <nav className="flex flex-col space-y-4">
                       <Link href="/projects" className="text-sm font-medium">
                         Projects
@@ -95,8 +99,11 @@ export default function RootLayout({
             </header>
             <main className="flex-grow">{children}</main>
             <footer className="border-t">
-              <div className="container mx-auto px-4 py-4 text-center text-sm text-muted-foreground">
-                © 2024 DevConnect. All rights reserved.
+              <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+                <Logo size="sm" />
+                <p className="text-sm text-muted-foreground">
+                  © 2024 DevConnect. All rights reserved.
+                </p>
               </div>
             </footer>
           </div>

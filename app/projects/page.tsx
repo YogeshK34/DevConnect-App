@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -7,19 +7,30 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Search, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/utils/supabase-utils";
 import { ProjectCard } from "@/components/project-card";
+import { ViewToggle } from "@/components/view-toggle";
 import type { Project } from "@/types/project";
 import { motion, AnimatePresence } from "framer-motion";
+
+type SortOption = "recent" | "likes" | "title";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState<any>(null);
-  const [likedProjects, setLikedProjects] = useState<string[]>([]);
+  const [view, setView] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<SortOption>("recent");
   const router = useRouter();
 
   useEffect(() => {
@@ -30,7 +41,6 @@ export default function ProjectsPage() {
       setUser(user);
       if (user) {
         fetchProjects();
-        fetchLikedProjects();
       } else {
         router.push("/auth/sign-in");
       }
@@ -62,37 +72,29 @@ export default function ProjectsPage() {
     }
   };
 
-  const fetchLikedProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("likes")
-        .select("project_id")
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-
-      setLikedProjects(data.map((like) => like.project_id));
-    } catch (error) {
-      console.error("Error fetching liked projects:", error);
+  const sortProjects = (projects: Project[]) => {
+    switch (sortBy) {
+      case "likes":
+        return [...projects].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      case "title":
+        return [...projects].sort((a, b) => a.title.localeCompare(b.title));
+      case "recent":
+      default:
+        return [...projects].sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
     }
   };
 
-  const handleLike = async (projectId: string) => {
-    if (likedProjects.includes(projectId)) {
-      setLikedProjects(likedProjects.filter((id) => id !== projectId));
-    } else {
-      setLikedProjects([...likedProjects, projectId]);
-    }
-    // Update likes on the server
-    await fetch(`/api/projects/${projectId}/like`, { method: "POST" });
-  };
-
-  const filteredProjects = projects.filter(
-    (project) =>
-      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.technologies.some((tech) =>
-        tech.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+  const filteredProjects = sortProjects(
+    projects.filter(
+      (project) =>
+        project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.technologies.some((tech) =>
+          tech.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    )
   );
 
   if (loading) {
@@ -109,13 +111,13 @@ export default function ProjectsPage() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4"
+        className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8"
       >
         <h1 className="text-3xl font-bold tracking-tight text-primary">
           Explore Projects
         </h1>
-        <div className="flex items-center space-x-4 w-full md:w-auto">
-          <div className="relative flex-grow md:flex-grow-0">
+        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
@@ -125,32 +127,49 @@ export default function ProjectsPage() {
               className="pl-10 pr-4 py-2 w-full md:w-64"
             />
           </div>
-          <Button onClick={() => router.push("/projects/new")}>
-            <Plus className="h-4 w-4 mr-2" /> New Project
-          </Button>
+          <div className="flex items-center gap-4">
+            <Select
+              value={sortBy}
+              onValueChange={(value) => setSortBy(value as SortOption)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Most Recent</SelectItem>
+                <SelectItem value="likes">Most Liked</SelectItem>
+                <SelectItem value="title">Project Name</SelectItem>
+              </SelectContent>
+            </Select>
+            <ViewToggle view={view} onViewChange={setView} />
+            <Button onClick={() => router.push("/projects/new")}>
+              <Plus className="h-4 w-4 mr-2" /> New Project
+            </Button>
+          </div>
         </div>
       </motion.div>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {filteredProjects.length > 0 ? (
           <motion.div
+            key="projects"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className={
+              view === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "flex flex-col gap-4"
+            }
           >
             {filteredProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                isLiked={likedProjects.includes(project.id)}
-                onLike={handleLike}
-              />
+              <ProjectCard key={project.id} project={project} view={view} />
             ))}
           </motion.div>
         ) : (
           <motion.div
+            key="empty"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
