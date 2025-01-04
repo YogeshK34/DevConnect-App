@@ -259,7 +259,7 @@ export default function UserProfilePage() {
             </div>
 
             {/* Profile Info */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-4 pt-10">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold">
