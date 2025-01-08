@@ -8,6 +8,7 @@ import { supabase } from "@/utils/supabase-utils";
 import { Loader2, Code2, Users, Rocket, GitBranch } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import { Feedback } from "@/components/Feedback";
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
@@ -207,6 +208,11 @@ export default function Home() {
                 </Button>
               </Link>
             </motion.div>
+          </div>
+        </section>
+        <section className="py-20 px-4">
+          <div className="container mx-auto max-w-6xl flex justify-center">
+            <Feedback />
           </div>
         </section>
       </div>
